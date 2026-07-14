@@ -19,17 +19,57 @@ evidence → family map → ambiguity register → workshop pack
 
 ## Sample output
 
-```console
-$ metricgov prepare
-Scanned evidence. Found 16 metric evidence rows. Wrote artifacts/01_evidence_log.csv
-Classified metric evidence. Wrote artifacts/02_metric_family_map.md and artifacts/03_ambiguity_register.md
-Generated workshop pack: artifacts/04_workshop_pack.md
+The worked revenue example turns scattered evidence into artifacts that stakeholders can review and approve.
 
+### Ambiguity Register
+
+> **Generic label: Revenue**  
+> **Evidence:** “Revenue” appears across Finance exports, Sales SQL,
+> Marketing pipeline reports, and the board pack.  
+> **Risk:** One label may be hiding several different business meanings.  
+> **Interpretation:** Sales usage appears closer to **booked revenue**.
+> Marketing's “pipeline revenue” is not revenue and should likely be renamed
+> **pipeline value**. Board and Finance usage still needs an accountable owner
+> to confirm the intended definition before certification.  
+> **Next step:** Review each variant with Finance, Sales, and Marketing; assign
+> owners and keep legitimate variants separate.
+
+### Metric Decision Record
+
+> **Metric:** Pipeline Value  
+> **Status:** Proposed  
+> **Owner:** Marketing — confirmation required  
+> **Definition:** Expected value of open sales opportunities represented in
+> the marketing pipeline evidence. Exact stage, probability, and exclusion
+> rules remain open.  
+> **Naming decision:** Rename “pipeline revenue” to “pipeline value” to avoid
+> presenting unbooked opportunities as revenue.  
+> **Approved use:** Pipeline planning, subject to owner confirmation.  
+> **Not approved use:** Financial reporting, recognised revenue, or board
+> reporting as actual revenue.
+
+### Business Metric Catalog
+
+> **Booked Revenue** — Sales evidence appears to represent closed-won bookings;
+> definition and owner confirmation remain required.  
+> **Pipeline Value** — Proposed replacement for Marketing's “pipeline revenue”;
+> never use as actual revenue.  
+> **Board / Finance Revenue** — Not certified. The evidence does not yet prove
+> whether this means gross, net, booked, or recognised revenue; an owner must
+> confirm the definition and source of truth.
+
+Run the workflow from the example project directory:
+
+```console
+$ cd examples/revenue
+$ metricgov prepare
 $ metricgov check
-Governance check complete. Failures: 5. Report: artifacts/06_governance_check.md
 ```
 
-Failures are visible by design: an incomplete draft stays incomplete until its owner confirms the definition. See the [worked revenue example](examples/revenue/README.md).
+The example governance check reports failures because its MDRs are deliberately
+left as drafts until owners confirm the missing definitions, grains, usage
+boundaries, and review cadences. A generated draft is not a certified metric.
+See the [complete worked example](examples/revenue/README.md).
 
 ## What v0.1 supports
 
