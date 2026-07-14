@@ -19,57 +19,67 @@ evidence → family map → ambiguity register → workshop pack
 
 ## Sample output
 
-The worked revenue example turns scattered evidence into artifacts that stakeholders can review and approve.
+The worked revenue example produces draft governance artifacts from supplied evidence and workshop notes. The excerpts below reflect the generated files; unresolved fields remain `TBD` until owners confirm them.
 
-### Ambiguity Register
+### Ambiguity Register (excerpt)
 
-> **Generic label: Revenue**  
-> **Evidence:** “Revenue” appears across Finance exports, Sales SQL,
-> Marketing pipeline reports, and the board pack.  
-> **Risk:** One label may be hiding several different business meanings.  
-> **Interpretation:** Sales usage appears closer to **booked revenue**.
-> Marketing's “pipeline revenue” is not revenue and should likely be renamed
-> **pipeline value**. Board and Finance usage still needs an accountable owner
-> to confirm the intended definition before certification.  
-> **Next step:** Review each variant with Finance, Sales, and Marketing; assign
-> owners and keep legitimate variants separate.
+| Type | Evidence | Risk / next step |
+|---|---|---|
+| `generic_label_without_certification` | Generic label 'Revenue' appears in 4 evidence rows. | The same label may hide multiple business meanings. Ask owners whether it should be split. |
+| `same_label_multiple_sources` | 'Revenue' appears in `board_pack.md`, `finance_export.csv`, `marketing_pipeline.sql`, and `sales_dashboard.sql`. | Confirm source of truth, owner, and approved use. |
+| `metric_family_has_multiple_variants` | Detected `booked_revenue`, `gross_revenue`, `net_revenue`, `pipeline_value`, and `recognised_revenue`. | Create distinct MDRs for legitimate variants. |
+| `owner_gap` | Recognised revenue in `finance_export.csv` has no owner mentioned. | Identify the business owner before certification. |
 
-### Metric Decision Record
+The register identifies ambiguity and questions; it does not decide which definition is true.
 
-> **Metric:** Pipeline Value  
-> **Status:** Proposed  
-> **Owner:** Marketing — confirmation required  
-> **Definition:** Expected value of open sales opportunities represented in
-> the marketing pipeline evidence. Exact stage, probability, and exclusion
-> rules remain open.  
-> **Naming decision:** Rename “pipeline revenue” to “pipeline value” to avoid
-> presenting unbooked opportunities as revenue.  
-> **Approved use:** Pipeline planning, subject to owner confirmation.  
-> **Not approved use:** Financial reporting, recognised revenue, or board
-> reporting as actual revenue.
+### Metric Decision Record (excerpt)
 
-### Business Metric Catalog
+```markdown
+# MDR: Pipeline Value
 
-> **Booked Revenue** — Sales evidence appears to represent closed-won bookings;
-> definition and owner confirmation remain required.  
-> **Pipeline Value** — Proposed replacement for Marketing's “pipeline revenue”;
-> never use as actual revenue.  
-> **Board / Finance Revenue** — Not certified. The evidence does not yet prove
-> whether this means gross, net, booked, or recognised revenue; an owner must
-> confirm the definition and source of truth.
+## Status
+Proposed
 
-Run the workflow from the example project directory:
+## Owner
+Marketing
+
+## Definition
+TBD — requires owner confirmation.
+
+## Source of Truth
+mart.marketing_sourced_pipeline
+
+## Approved Use
+TBD — confirm where this metric is allowed to be used.
+
+## Workshop Feedback Snapshot
+Marketing agreed that Pipeline Revenue should be renamed Pipeline Value
+because it represents open and qualified opportunity value,
+not realised revenue.
+```
+
+The rename is recorded as workshop feedback, while the governed definition and usage boundaries remain visibly incomplete for human confirmation.
+
+### Business Metric Catalog (excerpt)
+
+| Metric | Status | Owner | Definition | Source of truth |
+|---|---|---|---|---|
+| Booked Revenue | Proposed | Sales Ops | TBD — requires owner confirmation. | `crm.opportunities` |
+| Pipeline Value | Proposed | Marketing | TBD — requires owner confirmation. | `mart.marketing_sourced_pipeline` |
+| Recognised Revenue | Proposed | Finance | TBD — requires owner confirmation. | Recognised Revenue |
+
+The generated catalog is draft-first: it publishes proposed records and preserves missing confirmation instead of presenting them as certified definitions.
+
+Run it from the example project directory:
 
 ```console
 $ cd examples/revenue
 $ metricgov prepare
+$ metricgov finalize --from feedback/workshop_notes.md
 $ metricgov check
 ```
 
-The example governance check reports failures because its MDRs are deliberately
-left as drafts until owners confirm the missing definitions, grains, usage
-boundaries, and review cadences. A generated draft is not a certified metric.
-See the [complete worked example](examples/revenue/README.md).
+Governance check failures are expected in this example: the MDRs remain incomplete until owners confirm definitions, grains, usage boundaries, and review cadences. See the [complete worked example](examples/revenue/README.md).
 
 ## What v0.1 supports
 
