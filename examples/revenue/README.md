@@ -9,11 +9,12 @@ Install the package from the repository root, then:
 ```bash
 cd examples/revenue
 metricgov prepare
-metricgov finalize --from feedback/workshop_notes.md
+metricgov finalize --from feedback/workshop_decisions.yaml
+metricgov change-plan
 metricgov check
 ```
 
-`prepare` scans `evidence/`, maps the revenue family, classifies ambiguity, and creates a workshop pack. `finalize` uses workshop notes to draft MDRs, publish the catalog, and write the governance report.
+`prepare` scans `evidence/`, maps the revenue family, classifies ambiguity, and creates a workshop pack. `finalize` uses the structured decision to draft MDRs, publish the catalog, generate a dashboard change plan, and write the governance report. The explicit `change-plan` command above demonstrates that the plan can also be regenerated independently.
 
 ## Review the outputs
 
@@ -24,17 +25,20 @@ metricgov check
 - `decisions/MDR-*.md` contains the metric decision records.
 - `catalog/` contains the generated business-facing catalog.
 - `artifacts/06_governance_check.md` reports completeness.
+- `artifacts/07_dashboard_change_plan.md` identifies labels and evidence to rename or review.
 
 These records illustrate the workflow; they are not certifications for another organization. Owners, definitions, sources, uses, caveats, and review cadence must be confirmed locally.
 
-The command ends with `Governance check complete. Failures: 5`. This is expected: all five sample MDRs are intentionally draft and incomplete until their owners confirm the missing definitions, grains, usage boundaries, and review cadences. The example preserves those gaps instead of inventing business truth.
+The command ends with `Governance check complete. Failures: 4`. This is expected: Pipeline Value is complete, while the other four sample MDRs remain incomplete until their owners confirm the missing definitions, grains, usage boundaries, and review cadences.
 
 ## Structured decision example
 
-`feedback/workshop_decisions.yaml` contains one owner-confirmed decision for Pipeline Value. To populate its structured MDR and catalog fields, run:
+`feedback/workshop_decisions.yaml` contains one owner-confirmed decision for Pipeline Value. It populates the structured MDR and catalog fields and creates this change-plan row:
 
-```bash
-metricgov finalize --from feedback/workshop_decisions.yaml
-```
+| Current Label | Recommended Label | Affected Evidence | Reason | Owner | Status |
+|---|---|---|---|---|---|
+| Pipeline Revenue | Pipeline Value | `marketing_pipeline.sql` | Owner-confirmed naming decision | Marketing | Ready to rename |
 
-The structured decision makes Pipeline Value complete and reduces the governance report to `Failures: 4`. The other four revenue MDRs remain incomplete. YAML values only populate fields when `owner_confirmed: true` or when an individual value is explicitly marked `proposed: true`.
+The plan does not change `marketing_pipeline.sql`; it gives an analyst an explicit implementation task. YAML values only populate fields when `owner_confirmed: true` or when an individual value is explicitly marked `proposed: true`.
+
+To exercise the original free-text path instead, use `metricgov finalize --from feedback/workshop_notes.md`. Free-text notes remain snapshots and do not populate governed fields automatically.

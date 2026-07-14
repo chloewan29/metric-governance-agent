@@ -65,7 +65,7 @@ class CliSmokeTest(unittest.TestCase):
     def test_help_lists_readme_commands(self) -> None:
         result = run_cli("--help", cwd=REPO_ROOT)
         self.assertEqual(result.returncode, 0, result.stderr)
-        commands = ("init", "scan", "classify", "workshop", "record", "publish", "check", "prepare", "finalize")
+        commands = ("init", "scan", "classify", "workshop", "record", "publish", "change-plan", "check", "prepare", "finalize")
         for command in commands:
             self.assertIn(command, result.stdout)
 
@@ -155,6 +155,59 @@ class CliSmokeTest(unittest.TestCase):
             result = run_cli("record", "--from", str(decisions), cwd=project)
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("Cannot certify", result.stderr)
+
+    def test_change_plan_creates_artifact(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            project = Path(directory)
+            prepare_booked_revenue_project(project)
+            result = run_cli("record", cwd=project)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            result = run_cli("change-plan", cwd=project)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue((project / "artifacts" / "07_dashboard_change_plan.md").is_file())
+
+    def test_confirmed_naming_decision_is_ready_to_rename(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            project = Path(directory)
+            result = run_cli("init", "revenue", cwd=project)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            (project / "evidence" / "marketing_pipeline.sql").write_text(
+                "select sum(amount) as pipeline_revenue from mart.marketing_pipeline",
+                encoding="utf-8",
+            )
+            result = run_cli("prepare", cwd=project)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            decisions = project / "feedback" / "workshop_decisions.yaml"
+            decisions.write_text(
+                textwrap.dedent("""\
+                    decisions:
+                      - metric: Pipeline Value
+                        status: Proposed
+                        owner: Marketing
+                        owner_confirmed: true
+                        naming_decision: Rename "Pipeline Revenue" to "Pipeline Value"
+                """),
+                encoding="utf-8",
+            )
+            result = run_cli("finalize", "--from", str(decisions), cwd=project)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            plan = (project / "artifacts" / "07_dashboard_change_plan.md").read_text(encoding="utf-8")
+            self.assertIn("| Pipeline Revenue | Pipeline Value | marketing_pipeline.sql | sql |", plan)
+            self.assertIn("Owner-confirmed naming decision", plan)
+            self.assertIn("Ready to rename", plan)
+
+    def test_no_naming_decision_creates_no_action_plan(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            project = Path(directory)
+            prepare_booked_revenue_project(project)
+            result = run_cli("record", cwd=project)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            result = run_cli("change-plan", cwd=project)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            plan = (project / "artifacts" / "07_dashboard_change_plan.md").read_text(encoding="utf-8")
+            self.assertIn("Naming decisions found: 0", plan)
+            self.assertIn("No naming decisions found.", plan)
+            self.assertIn("No action", plan)
 
 
 if __name__ == "__main__":

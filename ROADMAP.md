@@ -2,7 +2,20 @@
 
 Metric Governance Agent will stay focused on evidence, alignment, human decisions, and auditable publication. The roadmap does not include automatic certification of business truth.
 
-## v0.2 — Safer authoring
+## Shipped in v0.2 — Structured decisions
+
+- Accept owner-confirmed workshop decisions in YAML.
+- Populate MDR and catalog fields only from confirmed or explicitly proposed values.
+- Prevent certification without owner confirmation and complete required fields.
+
+## Shipped in v0.3 — Dashboard Change Plan
+
+- Translate recorded naming decisions into an actionable Markdown change plan.
+- Match old labels to captured evidence conservatively.
+- Mark confirmed matches ready to rename and uncertain matches for review.
+- Never rewrite dashboards, reports, SQL, or evidence automatically.
+
+## Next — Safer authoring
 
 - Validate MDR structure and status with a machine-readable schema.
 - Distinguish owner-confirmed approval from field completeness in checks.
@@ -10,14 +23,14 @@ Metric Governance Agent will stay focused on evidence, alignment, human decision
 - Improve diagnostics for unreadable or unsupported evidence.
 - Package metric packs so installed wheels work outside a source checkout.
 
-## v0.3 — Extensibility
+## Later — Extensibility
 
 - Support user-defined metric packs and organization-specific governance rules.
 - Add structured YAML decision records alongside Markdown.
 - Provide import/export adapters for common semantic-layer and catalog formats.
 - Expand tests across supported Python versions and operating systems.
 
-## Later
+## Longer term
 
 - Track definition changes and review due dates.
 - Produce migration plans for renamed, split, or deprecated metrics.

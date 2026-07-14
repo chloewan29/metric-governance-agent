@@ -696,6 +696,132 @@ def one_line(text: str) -> str:
     return re.sub(r"\s+", " ", text.strip())[:300]
 
 
+def read_markdown_section(text: str, heading: str) -> str:
+    pattern = rf"^##\s+{re.escape(heading)}\s*$\n(.*?)(?=^##\s+|\Z)"
+    match = re.search(pattern, text, flags=re.M | re.S)
+    return match.group(1).strip() if match else ""
+
+
+def parse_naming_decision(value: str) -> Tuple[str, str, bool]:
+    if not value or value.strip().lower() == "none recorded.":
+        return "", "", False
+    quoted = re.search(
+        r"\brename\s+[\"'“‘](.+?)[\"'”’]\s+to\s+[\"'“‘](.+?)[\"'”’]",
+        value,
+        flags=re.I | re.S,
+    )
+    if quoted:
+        return one_line(quoted.group(1)), one_line(quoted.group(2)), True
+    plain = re.search(r"\brename\s+(.+?)\s+to\s+(.+?)(?:[.\n]|$)", value, flags=re.I | re.S)
+    if plain:
+        current = one_line(plain.group(1)).strip(" \"'“”‘’")
+        recommended = one_line(plain.group(2)).strip(" \"'“”‘’")
+        return current, recommended, bool(current and recommended)
+    return "", "", False
+
+
+def markdown_cell(value: str) -> str:
+    return one_line(value).replace("|", "\\|") or "—"
+
+
+def command_change_plan(args: argparse.Namespace) -> None:
+    root = Path.cwd()
+    ensure_dirs(root)
+    evidence = read_evidence(root)
+    catalog_by_metric: Dict[str, Dict[str, str]] = {}
+    catalog_path = root / "catalog" / "business_metric_catalog.csv"
+    if catalog_path.exists():
+        with catalog_path.open(newline="", encoding="utf-8-sig") as f:
+            catalog_by_metric = {row.get("Metric", ""): row for row in csv.DictReader(f)}
+
+    changes: List[Dict[str, str]] = []
+    naming_count = 0
+    for path in sorted((root / "decisions").glob("MDR-*.md")):
+        text = path.read_text(encoding="utf-8", errors="ignore")
+        mdr = parse_mdr(path)
+        naming = read_markdown_section(text, "Naming Decision")
+        if not naming or naming.lower() == "none recorded.":
+            continue
+        naming_count += 1
+        current, recommended, parsed = parse_naming_decision(naming)
+        confirmed = read_markdown_section(text, "Owner Confirmed").lower() == "true"
+        catalog_row = catalog_by_metric.get(mdr.get("Metric", ""), {})
+        owner = catalog_row.get("Owner") or mdr.get("Owner", "") or "TBD"
+        if not parsed:
+            changes.append({
+                "current": naming,
+                "recommended": "Review required",
+                "evidence": "Not matched",
+                "source_type": "",
+                "reason": "Naming decision could not be parsed confidently",
+                "owner": owner,
+                "status": "Review required",
+            })
+            continue
+        matches = []
+        for row in evidence:
+            searchable = " ".join([
+                row.get("metric_label", ""), row.get("logic_found", ""),
+                row.get("filter_or_context", ""), row.get("table_or_field", ""),
+            ])
+            if contains_term(searchable, current):
+                matches.append(row)
+        if not matches:
+            changes.append({
+                "current": current,
+                "recommended": recommended,
+                "evidence": "Not matched",
+                "source_type": "",
+                "reason": "Naming decision found; affected evidence needs review",
+                "owner": owner,
+                "status": "Review required",
+            })
+            continue
+        seen = set()
+        for row in matches:
+            source_file = row.get("source_file", "")
+            source_name = source_file.replace("\\", "/").rsplit("/", 1)[-1] or "Unknown"
+            key = (source_name, row.get("source_type", ""))
+            if key in seen:
+                continue
+            seen.add(key)
+            changes.append({
+                "current": current,
+                "recommended": recommended,
+                "evidence": source_name,
+                "source_type": row.get("source_type", "") or "Unknown",
+                "reason": "Owner-confirmed naming decision" if confirmed else "Naming decision requires owner confirmation",
+                "owner": owner,
+                "status": "Ready to rename" if confirmed else "Review required",
+            })
+
+    out = root / "artifacts" / "07_dashboard_change_plan.md"
+    ready = sum(item["status"] == "Ready to rename" for item in changes)
+    review = sum(item["status"] == "Review required" for item in changes)
+    with out.open("w", encoding="utf-8") as f:
+        f.write("# Dashboard Change Plan\n\n")
+        f.write("This plan translates recorded metric naming decisions into candidate report, dashboard, SQL, and evidence changes. Review each item before implementation.\n\n")
+        f.write("## Summary\n\n")
+        f.write(f"- Naming decisions found: {naming_count}\n")
+        f.write(f"- Ready to rename: {ready}\n")
+        f.write(f"- Review required: {review}\n")
+        f.write(f"- No action: {1 if naming_count == 0 else 0}\n\n")
+        f.write("## Change plan\n\n")
+        f.write("| Current Label | Recommended Label | Affected Evidence | Source Type | Reason | Owner | Status |\n")
+        f.write("|---|---|---|---|---|---|---|\n")
+        if not changes:
+            f.write("| — | — | — | — | No naming decisions found. | — | No action |\n")
+        else:
+            for item in changes:
+                fields = [item[key] for key in ["current", "recommended", "evidence", "source_type", "reason", "owner", "status"]]
+                f.write("| " + " | ".join(markdown_cell(value) for value in fields) + " |\n")
+        f.write("\n## Notes / limitations\n\n")
+        f.write("- This plan does not modify dashboards, reports, SQL, or evidence files.\n")
+        f.write("- Matches use labels and captured evidence text; indirect or dynamic references may be missed.\n")
+        f.write("- Unclear naming decisions or unmatched evidence remain Review required.\n")
+    print(f"Generated dashboard change plan: {out.relative_to(root)}. Ready: {ready}. Review required: {review}.")
+
+
 def command_check(args: argparse.Namespace) -> None:
     root = Path.cwd()
     ensure_dirs(root)
@@ -737,6 +863,7 @@ def command_prepare(args: argparse.Namespace) -> None:
 def command_finalize(args: argparse.Namespace) -> None:
     command_record(args)
     command_publish(args)
+    command_change_plan(args)
     command_check(args)
 
 
@@ -764,6 +891,9 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("publish", help="Publish business metric catalog from MDRs")
     p.set_defaults(func=command_publish)
 
+    p = sub.add_parser("change-plan", help="Generate dashboard and report label change plan")
+    p.set_defaults(func=command_change_plan)
+
     p = sub.add_parser("check", help="Validate MDR governance completeness")
     p.add_argument("--fail-on-error", action="store_true", help="Return non-zero exit code if checks fail")
     p.set_defaults(func=command_check)
@@ -771,7 +901,7 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("prepare", help="Run scan -> classify -> workshop")
     p.set_defaults(func=command_prepare)
 
-    p = sub.add_parser("finalize", help="Run record -> publish -> check")
+    p = sub.add_parser("finalize", help="Run record -> publish -> change-plan -> check")
     p.add_argument("--from", dest="from_file", default=None, help="Path to workshop feedback notes")
     p.add_argument("--fail-on-error", action="store_true", help="Return non-zero exit code if checks fail")
     p.set_defaults(func=command_finalize)

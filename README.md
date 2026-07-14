@@ -4,7 +4,7 @@
 
 Metric Governance Agent helps analytics and data teams move from “this dashboard says revenue” to an auditable definition with an owner, source of truth, usage boundaries, and decision history.
 
-It scans lightweight evidence, exposes ambiguity, prepares stakeholder alignment materials, records Metric Decision Records (MDRs), publishes a catalog, and checks governance completeness. It does not decide business truth: only a confirmed metric owner can approve a definition.
+It scans lightweight evidence, exposes ambiguity, prepares stakeholder alignment materials, records Metric Decision Records (MDRs), publishes a catalog, identifies affected dashboard and SQL labels, and checks governance completeness. It does not decide business truth: only a confirmed metric owner can approve a definition.
 
 ## Why this exists
 
@@ -14,7 +14,8 @@ Use it when you want a lightweight, repository-based process before adopting—o
 
 ```text
 evidence → family map → ambiguity register → workshop pack
-         → human decisions → MDRs → metric catalog → governance check
+         → human decisions → MDRs → metric catalog
+         → dashboard change plan → governance check
 ```
 
 ## Sample output
@@ -71,22 +72,33 @@ The structured fields are populated because this example decision explicitly rec
 
 The generated catalog is draft-first: it publishes proposed records and preserves missing confirmation instead of presenting them as certified definitions.
 
+### Dashboard Change Plan (excerpt)
+
+| Current Label | Recommended Label | Affected Evidence | Owner | Status |
+|---|---|---|---|---|
+| Pipeline Revenue | Pipeline Value | `marketing_pipeline.sql` | Marketing | Ready to rename |
+
+The catalog defines the governed metric; the change plan identifies evidence, reports, dashboard labels, or SQL that should be renamed or reviewed. It never modifies those assets automatically.
+
 Run it from the example project directory:
 
 ```console
 $ cd examples/revenue
 $ metricgov prepare
 $ metricgov finalize --from feedback/workshop_decisions.yaml
+$ metricgov change-plan
 $ metricgov check
 ```
 
 The check reports four expected failures: Pipeline Value is complete, while the other MDRs remain incomplete until owners confirm definitions, grains, usage boundaries, and review cadences. See the [complete worked example](examples/revenue/README.md).
 
-## What v0.2 supports
+## What v0.3 supports
 
 Built-in metric families: `revenue`, `churn`, and `active_customer`.
 
 Evidence formats: SQL, CSV, Markdown, text, and Excel (`.xlsx`/`.xlsm`) when the optional `openpyxl` dependency is installed.
+
+v0.3 adds the Dashboard Change Plan: an actionable Markdown report that maps confirmed naming decisions to affected evidence. It is a review aid, not an automatic dashboard or SQL migration tool.
 
 ## Quick start
 
@@ -130,10 +142,11 @@ See [the revenue example](examples/revenue/README.md) for its artifacts and expe
 | `metricgov record --from feedback/workshop_notes.md` | Preserve free-text notes in draft MDRs |
 | `metricgov record --from feedback/workshop_decisions.yaml` | Populate MDR fields from structured decisions |
 | `metricgov publish` | Generate CSV and Markdown catalogs from MDRs |
+| `metricgov change-plan` | Map naming decisions to affected evidence and labels |
 | `metricgov check` | Write a governance completeness report |
 | `metricgov check --fail-on-error` | Also exit non-zero when definitions are incomplete |
 | `metricgov prepare` | Run `scan → classify → workshop` |
-| `metricgov finalize --from feedback/workshop_notes.md` | Run `record → publish → check` |
+| `metricgov finalize --from feedback/workshop_notes.md` | Run `record → publish → change-plan → check` |
 
 Run workflow commands from the metric project directory (the directory containing `metric_context.json`). The equivalent module form is `python -m metricgov.cli`.
 
@@ -154,7 +167,7 @@ This creates the evidence log, metric family map, ambiguity register, and worksh
 metricgov finalize --from feedback/workshop_notes.md
 ```
 
-This produces draft MDRs under `decisions/`, catalogs under `catalog/`, and decision and completeness reports under `artifacts/`. Generated does not mean certified: review each MDR and only approve it after owner confirmation.
+This produces draft MDRs under `decisions/`, catalogs under `catalog/`, and decision, dashboard-change, and completeness reports under `artifacts/`. Generated does not mean certified: review each MDR and only approve it after owner confirmation.
 
 ### Free-text notes and structured decisions
 
