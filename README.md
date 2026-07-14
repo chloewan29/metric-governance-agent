@@ -6,9 +6,9 @@ Metric Governance Agent helps analytics and data teams move from “this dashboa
 
 It scans lightweight evidence, exposes ambiguity, prepares stakeholder alignment materials, records Metric Decision Records (MDRs), publishes a catalog, and checks governance completeness. It does not decide business truth: only a confirmed metric owner can approve a definition.
 
-## Why use it?
+## Why this exists
 
-The same label—revenue, churn, active customer—often hides different formulas, grains, time bases, and intended uses. Metric Governance Agent makes those differences visible and gives teams artifacts they can review in pull requests.
+The same label—revenue, churn, active customer—often hides different formulas, grains, time bases, and intended uses. This project turns those disagreements into explicit, reviewable decisions without letting software invent business truth.
 
 Use it when you want a lightweight, repository-based process before adopting—or alongside—a semantic layer or enterprise catalog. It is not a dashboard, a general-purpose data catalog, or an automatic certification engine.
 
@@ -16,6 +16,20 @@ Use it when you want a lightweight, repository-based process before adopting—o
 evidence → family map → ambiguity register → workshop pack
          → human decisions → MDRs → metric catalog → governance check
 ```
+
+## Sample output
+
+```console
+$ metricgov prepare
+Scanned evidence. Found 16 metric evidence rows. Wrote artifacts/01_evidence_log.csv
+Classified metric evidence. Wrote artifacts/02_metric_family_map.md and artifacts/03_ambiguity_register.md
+Generated workshop pack: artifacts/04_workshop_pack.md
+
+$ metricgov check
+Governance check complete. Failures: 5. Report: artifacts/06_governance_check.md
+```
+
+Failures are visible by design: an incomplete draft stays incomplete until its owner confirms the definition. See the [worked revenue example](examples/revenue/README.md).
 
 ## What v0.1 supports
 
