@@ -6,6 +6,32 @@ Metric Governance Agent helps analytics and data teams move from “this dashboa
 
 It scans lightweight evidence, exposes ambiguity, prepares stakeholder alignment materials, records Metric Decision Records (MDRs), publishes a catalog, identifies affected dashboard and SQL labels, and checks governance completeness. It does not decide business truth: only a confirmed metric owner can approve a definition.
 
+## What it produces
+
+Metric Governance Agent turns messy metric evidence into a governed decision trail:
+
+```text
+messy evidence → ambiguity register → owner-confirmed decisions
+               → MDRs → business metric catalog → dashboard change plan
+```
+
+| Stage | Artifact | Purpose |
+|---|---|---|
+| Discover ambiguity | Ambiguity Register | Shows where labels, sources, owners, or meanings do not align. |
+| Prepare alignment | Workshop Pack | Gives analysts stakeholder questions and decision points. |
+| Record decisions | Metric Decision Records | Captures confirmed definitions, naming decisions, caveats, and usage boundaries. |
+| Publish definitions | Business Metric Catalog | Creates a cleaner metric dictionary from structured decisions. |
+| Drive execution | Dashboard Change Plan | Identifies where old labels should be renamed or reviewed. |
+
+From the worked revenue example:
+
+- [Ambiguity Register](examples/revenue/artifacts/03_ambiguity_register.md)
+- [Pipeline Value MDR](examples/revenue/decisions/MDR-004-pipeline-value.md)
+- [Business Metric Dictionary](examples/revenue/catalog/business_metric_dictionary.md)
+- [Dashboard Change Plan](examples/revenue/artifacts/07_dashboard_change_plan.md)
+
+The agent does not automatically certify business truth. It exposes ambiguity, prepares decisions, and only fills governed catalog fields when owners confirm them.
+
 ## Why this exists
 
 The same label—revenue, churn, active customer—often hides different formulas, grains, time bases, and intended uses. This project turns those disagreements into explicit, reviewable decisions without letting software invent business truth.
