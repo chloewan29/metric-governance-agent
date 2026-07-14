@@ -1,0 +1,14 @@
+{
+  "conflict_types": [
+    "same_label_different_meaning",
+    "different_labels_same_meaning",
+    "formula_conflict",
+    "time_basis_conflict",
+    "grain_conflict",
+    "filter_or_exclusion_conflict",
+    "source_system_conflict",
+    "ownership_gap",
+    "executive_usage_risk",
+    "insufficient_evidence"
+  ]
+}

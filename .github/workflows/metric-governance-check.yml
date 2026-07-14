@@ -1,0 +1,27 @@
+name: Tests and metric governance
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install package
+        run: python -m pip install -e .
+      - name: Run tests
+        run: python -m unittest discover -s tests -v
+      - name: Run metric governance check
+        working-directory: examples/revenue
+        # The example deliberately preserves incomplete, unconfirmed decisions.
+        # Run the report without treating those documented gaps as a CI failure.
+        run: metricgov check

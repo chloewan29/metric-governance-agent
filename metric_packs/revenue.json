@@ -1,0 +1,41 @@
+{
+  "metric_family": "revenue",
+  "display_name": "Revenue",
+  "description": "Revenue metrics across finance, sales, marketing, and executive reporting.",
+  "terms": {
+    "recognised_revenue": ["recognised revenue", "recognized revenue", "finance revenue", "reported revenue"],
+    "booked_revenue": ["booked revenue", "booking", "bookings", "closed won", "closed-won", "opportunity amount", "sales amount"],
+    "gross_revenue": ["gross revenue", "gross sales", "total sales"],
+    "net_revenue": ["net revenue", "revenue net", "refunds", "credits", "after credits", "after refunds"],
+    "pipeline_value": ["pipeline revenue", "pipeline value", "weighted pipeline", "open pipeline", "qualified pipeline"],
+    "recurring_revenue": ["arr", "mrr", "annual recurring revenue", "monthly recurring revenue", "nrr", "net revenue retention"]
+  },
+  "common_conflicts": [
+    "booked_vs_recognised",
+    "gross_vs_net",
+    "pipeline_vs_actual",
+    "invoice_date_vs_close_date",
+    "refunds_credits_treatment",
+    "tax_fx_inclusion",
+    "source_system_conflict"
+  ],
+  "typical_owners": ["Finance", "Sales Ops", "RevOps", "Analytics"],
+  "must_define": ["source_of_truth", "time_basis", "recognition_rule", "deductions", "currency", "grain", "approved_use", "not_approved_use"],
+  "owner_questions": {
+    "Finance": [
+      "Is official revenue booked, billed, recognised, collected, gross, or net?",
+      "Are refunds, credits, tax, and FX adjustments included?",
+      "Which date determines the reporting period?",
+      "Is this the source of truth for Board or ELT reporting?"
+    ],
+    "Sales Ops": [
+      "Is sales revenue based on closed-won opportunity amount or signed contract value?",
+      "How are cancellations, downgrades, and amendments handled?",
+      "Should this metric be renamed Booked Revenue rather than Revenue?"
+    ],
+    "Marketing": [
+      "Is pipeline revenue open pipeline, weighted pipeline, or closed-won influenced value?",
+      "Should it be labelled Pipeline Value rather than Revenue?"
+    ]
+  }
+}

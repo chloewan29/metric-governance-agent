@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "metric-governance-agent"
+version = "0.1.0"
+description = "Repo-based metric governance workflow for scanning evidence, classifying ambiguity, recording Metric Decision Records, and publishing business metric catalogs."
+authors = [{ name = "Chloe Wan" }]
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
+license = { file = "LICENSE" }
+
+[project.optional-dependencies]
+xlsx = ["openpyxl>=3.1.0"]
+
+[project.scripts]
+metricgov = "metricgov.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["metricgov*"]

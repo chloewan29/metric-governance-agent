@@ -1,0 +1,8 @@
+{
+  "metric_family": "revenue",
+  "display_name": "Revenue",
+  "business_problem": "Revenue labels are inconsistent across Finance, Sales, Marketing, and Board reporting.",
+  "primary_decision": "Monthly executive performance reporting and dashboard naming cleanup.",
+  "teams_involved": ["Finance", "Sales Ops", "Marketing", "Analytics"],
+  "status": "discovery"
+}

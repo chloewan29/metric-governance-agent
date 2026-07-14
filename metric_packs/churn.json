@@ -1,0 +1,39 @@
+{
+  "metric_family": "churn",
+  "display_name": "Churn",
+  "description": "Churn metrics across customer success, finance, product, and executive reporting.",
+  "terms": {
+    "logo_churn": ["logo churn", "customer churn", "account churn", "churn rate"],
+    "revenue_churn": ["revenue churn", "gross revenue churn", "net revenue churn", "nrr", "grr"],
+    "subscription_churn": ["subscription churn", "cancelled subscription", "cancellation rate"],
+    "voluntary_churn": ["voluntary churn", "involuntary churn", "failed payment", "non payment"],
+    "retention": ["retention", "customer retention", "renewal rate", "renewals"]
+  },
+  "common_conflicts": [
+    "logo_vs_revenue_churn",
+    "gross_vs_net_churn",
+    "cancellation_date_vs_service_end_date",
+    "account_vs_user_vs_subscription_grain",
+    "voluntary_vs_involuntary_treatment",
+    "paused_accounts_treatment",
+    "reactivation_rule_missing"
+  ],
+  "typical_owners": ["Customer Success", "Finance", "Product", "RevOps", "Analytics"],
+  "must_define": ["numerator", "denominator", "churn_event", "time_window", "customer_grain", "exclusions", "reactivation_rule", "approved_use", "not_approved_use"],
+  "owner_questions": {
+    "Customer Success": [
+      "Does churn mean logo churn, revenue churn, subscription churn, or another measure?",
+      "Which customer event counts as churn?",
+      "How are pauses, reactivations, and involuntary churn handled?"
+    ],
+    "Finance": [
+      "Is revenue churn gross or net of expansion?",
+      "Which revenue baseline is used as denominator?",
+      "Is churn used in Board or investor reporting?"
+    ],
+    "Product": [
+      "Does product activity affect churn status?",
+      "Is churn measured at user, account, subscription, or customer level?"
+    ]
+  }
+}

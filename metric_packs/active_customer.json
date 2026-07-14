@@ -1,0 +1,37 @@
+{
+  "metric_family": "active_customer",
+  "display_name": "Active Customer",
+  "description": "Active customer metrics across product, marketing, customer, and executive reporting.",
+  "terms": {
+    "active_customer": ["active customer", "active account", "active user"],
+    "monthly_active": ["monthly active", "mau", "monthly active customer", "monthly active user"],
+    "engaged_customer": ["engaged customer", "engaged account", "engaged user"],
+    "paying_customer": ["paying customer", "paid customer", "billable customer"],
+    "transacting_customer": ["transacting customer", "purchasing customer", "customer with transaction"]
+  },
+  "common_conflicts": [
+    "login_vs_transaction_activity",
+    "30_day_vs_90_day_window",
+    "user_vs_account_vs_customer_grain",
+    "trial_user_inclusion",
+    "paid_vs_free_inclusion",
+    "activity_threshold_missing"
+  ],
+  "typical_owners": ["Product", "Marketing", "Customer Success", "Analytics"],
+  "must_define": ["activity_event", "time_window", "customer_grain", "trial_or_free_inclusion", "activity_threshold", "source_of_truth", "approved_use", "not_approved_use"],
+  "owner_questions": {
+    "Product": [
+      "What activity event qualifies a customer as active?",
+      "Is activity login-based, transaction-based, usage-based, or payment-based?",
+      "What time window should be used?"
+    ],
+    "Marketing": [
+      "Is active customer used for segmentation, campaign targeting, or executive reporting?",
+      "Should trial or free users be included?"
+    ],
+    "Customer Success": [
+      "Should engagement or usage thresholds define active status?",
+      "Should inactive but paying customers be counted?"
+    ]
+  }
+}
