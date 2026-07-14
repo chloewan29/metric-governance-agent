@@ -33,10 +33,10 @@ Generated from Metric Decision Records. Draft or incomplete metrics should not b
 
 - Status: Proposed
 - Owner: Marketing
-- Definition: TBD — requires owner confirmation. This draft was generated from evidence and workshop notes.
+- Definition: Weighted value of open, qualified marketing-sourced opportunities.
 - Source of truth: mart.marketing_sourced_pipeline
-- Approved use: TBD — confirm where this metric is allowed to be used.
-- Not approved use: TBD — confirm where this metric should not be used.
+- Approved use: Pipeline planning and forecast discussion
+- Not approved use: Financial reporting or reporting actual revenue
 
 ## Recognised Revenue
 

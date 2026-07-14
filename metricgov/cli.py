@@ -10,6 +10,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
+import yaml
+
 PACKAGE_ROOT = Path(__file__).resolve().parent.parent
 PACKS_DIR = PACKAGE_ROOT / "metric_packs"
 
@@ -72,6 +74,44 @@ def read_context(root: Path) -> Dict[str, Any]:
             "To start a new project: metricgov init revenue"
         )
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def read_structured_decisions(path: Path) -> List[Dict[str, Any]]:
+    try:
+        payload = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except yaml.YAMLError as exc:
+        raise SystemExit(f"Invalid workshop decisions YAML: {exc}") from exc
+    if payload is None:
+        return []
+    decisions = payload.get("decisions") if isinstance(payload, dict) else payload
+    if not isinstance(decisions, list) or not all(isinstance(item, dict) for item in decisions):
+        raise SystemExit("Workshop decisions YAML must contain a 'decisions' list.")
+    for index, decision in enumerate(decisions, 1):
+        if not decision.get("metric"):
+            raise SystemExit(f"Workshop decision {index} is missing 'metric'.")
+        if "owner_confirmed" in decision and not isinstance(decision["owner_confirmed"], bool):
+            raise SystemExit(f"Workshop decision {index} 'owner_confirmed' must be true or false.")
+    return decisions
+
+
+def decision_value(decision: Dict[str, Any], key: str) -> Any:
+    raw = decision.get(key)
+    if isinstance(raw, dict):
+        if decision.get("owner_confirmed") is True or raw.get("proposed") is True:
+            return raw.get("value")
+        return None
+    return raw if decision.get("owner_confirmed") is True else None
+
+
+def display_decision_value(value: Any, *, bullets: bool = False) -> str:
+    if isinstance(value, list):
+        return "\n".join(f"- {item}" for item in value) if bullets else ", ".join(str(item) for item in value)
+    return str(value).strip() if value is not None else ""
+
+
+def find_decision(decisions: List[Dict[str, Any]], metric_name: str, metric_type: str) -> Dict[str, Any]:
+    targets = {slugify(metric_name), slugify(metric_type)}
+    return next((item for item in decisions if slugify(str(item.get("metric", ""))) in targets), {})
 
 
 def write_context(root: Path, metric_family: str) -> None:
@@ -435,6 +475,8 @@ def command_record(args: argparse.Namespace) -> None:
     if not feedback_path.is_absolute():
         feedback_path = root / feedback_path
     feedback = feedback_path.read_text(encoding="utf-8", errors="ignore") if feedback_path.exists() else ""
+    structured = feedback_path.suffix.lower() in [".yaml", ".yml"]
+    decisions = read_structured_decisions(feedback_path) if structured and feedback_path.exists() else []
     rows = read_evidence(root)
     by_type = {k: v for k, v in group_by(rows, "metric_type").items() if k != "ambiguous_generic"}
     if not by_type:
@@ -445,13 +487,17 @@ def command_record(args: argparse.Namespace) -> None:
     for idx, (metric_type, items) in enumerate(sorted(by_type.items()), 1):
         labels = sorted({i.get("metric_label", "") for i in items if i.get("metric_label")})
         metric_name = choose_metric_name(metric_type, labels, pack)
-        owner = infer_owner_for_metric(metric_type, feedback, pack) or (pack.get("typical_owners") or ["TBD"])[0]
+        decision = find_decision(decisions, metric_name, metric_type)
+        owner = infer_owner_for_metric(metric_type, "" if structured else feedback, pack) or (pack.get("typical_owners") or ["TBD"])[0]
         path = root / "decisions" / f"MDR-{idx:03d}-{slugify(metric_name)}.md"
-        path.write_text(render_mdr(metric_name, metric_type, owner, labels, items, feedback, pack), encoding="utf-8")
+        path.write_text(render_mdr(metric_name, metric_type, owner, labels, items, feedback, pack, decision), encoding="utf-8")
         created.append(path)
     with decision_log.open("w", encoding="utf-8") as f:
         f.write(f"# Decision Log: {pack.get('display_name')}\n\n")
-        f.write("Generated draft Metric Decision Records from evidence and workshop feedback. Review with owners before marking as Approved.\n\n")
+        if structured:
+            f.write("Generated Metric Decision Records from structured workshop decisions. Only explicitly proposed or owner-confirmed YAML values populate structured fields.\n\n")
+        else:
+            f.write("Generated draft Metric Decision Records from evidence and workshop feedback. Review with owners before marking as Approved.\n\n")
         if feedback:
             f.write("## Workshop feedback used\n\n")
             f.write(feedback.strip() + "\n\n")
@@ -504,46 +550,85 @@ def infer_owner_from_feedback(feedback: str, pack: Dict[str, Any]) -> str:
     return ""
 
 
-def render_mdr(metric_name: str, metric_type: str, owner: str, labels: List[str], items: List[Dict[str, str]], feedback: str, pack: Dict[str, Any]) -> str:
+def render_mdr(metric_name: str, metric_type: str, owner: str, labels: List[str], items: List[Dict[str, str]], feedback: str, pack: Dict[str, Any], decision: Optional[Dict[str, Any]] = None) -> str:
+    decision = decision or {}
     source_files = sorted({Path(i.get("source_file", "")).name for i in items if i.get("source_file")})
     logic = next((i.get("logic_found", "") for i in items if i.get("logic_found")), "TBD")
     source = next((i.get("table_or_field", "") for i in items if i.get("table_or_field")), "TBD")
     date_basis = next((i.get("date_basis", "") for i in items if i.get("date_basis")), "TBD")
+    values = {
+        "Status": "Proposed",
+        "Owner": owner or "TBD",
+        "Definition": "TBD — requires owner confirmation. This draft was generated from evidence and workshop notes.",
+        "Source of Truth": source or "TBD",
+        "Logic / Formula": logic or "TBD",
+        "Grain": "TBD",
+        "Time Basis": date_basis or "TBD",
+        "Approved Use": "TBD — confirm where this metric is allowed to be used.",
+        "Not Approved Use": "TBD — confirm where this metric should not be used.",
+        "Related Metrics": ", ".join(labels) if labels else pack.get("display_name", ""),
+        "Caveats": f"- Generated draft. Do not mark as certified until owner confirms definition, source, grain, time basis, and usage boundaries.\n- Evidence files reviewed: {', '.join(source_files) if source_files else 'None'}.",
+        "Review Cadence": "TBD",
+    }
+    yaml_fields = {
+        "status": "Status", "owner": "Owner", "definition": "Definition",
+        "source_of_truth": "Source of Truth", "logic_formula": "Logic / Formula",
+        "grain": "Grain", "time_basis": "Time Basis", "approved_use": "Approved Use",
+        "not_approved_use": "Not Approved Use", "related_metrics": "Related Metrics",
+        "caveats": "Caveats", "review_cadence": "Review Cadence",
+    }
+    for yaml_key, mdr_field in yaml_fields.items():
+        trusted = decision_value(decision, yaml_key)
+        if trusted is not None:
+            values[mdr_field] = display_decision_value(trusted, bullets=yaml_key == "caveats")
+    owner_confirmed = decision.get("owner_confirmed") is True
+    if values["Status"].strip().lower() == "certified":
+        missing = [
+            field for field in REQUIRED_MDR_FIELDS
+            if not values[field].strip() or values[field].strip().upper() == "TBD" or values[field].strip().startswith("TBD")
+        ]
+        if not owner_confirmed or missing:
+            reason = "owner_confirmed must be true" if not owner_confirmed else f"missing required fields: {', '.join(missing)}"
+            raise SystemExit(f"Cannot certify {metric_name}: {reason}.")
+    naming_decision = display_decision_value(decision_value(decision, "naming_decision"))
+    owner_confirmation_section = f"\n## Owner Confirmed\n{'true' if owner_confirmed else 'false'}\n" if decision else ""
+    naming_section = f"\n## Naming Decision\n{naming_decision or 'None recorded.'}\n" if decision else ""
     return f"""# MDR: {metric_name}
 
 ## Status
-Proposed
+{values['Status']}
 
 ## Owner
-{owner or 'TBD'}
+{values['Owner']}
+{owner_confirmation_section}
 
 ## Definition
-TBD — requires owner confirmation. This draft was generated from evidence and workshop notes.
+{values['Definition']}
 
 ## Source of Truth
-{source or 'TBD'}
+{values['Source of Truth']}
 
 ## Logic / Formula
-{logic or 'TBD'}
+{values['Logic / Formula']}
 
 ## Grain
-TBD
+{values['Grain']}
 
 ## Time Basis
-{date_basis or 'TBD'}
+{values['Time Basis']}
 
 ## Approved Use
-TBD — confirm where this metric is allowed to be used.
+{values['Approved Use']}
 
 ## Not Approved Use
-TBD — confirm where this metric should not be used.
+{values['Not Approved Use']}
+{naming_section}
 
 ## Related Metrics
-{', '.join(labels) if labels else pack.get('display_name', '')}
+{values['Related Metrics']}
 
 ## Caveats
-- Generated draft. Do not mark as certified until owner confirms definition, source, grain, time basis, and usage boundaries.
-- Evidence files reviewed: {', '.join(source_files) if source_files else 'None'}.
+{values['Caveats']}
 
 ## Open Questions
 - What is the exact business definition?
@@ -553,7 +638,7 @@ TBD — confirm where this metric should not be used.
 - Which similar labels should be renamed, split, or deprecated?
 
 ## Review Cadence
-TBD
+{values['Review Cadence']}
 
 ## Change History
 - Draft generated by Metric Governance Agent.

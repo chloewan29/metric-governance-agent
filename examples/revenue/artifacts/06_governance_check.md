@@ -32,13 +32,7 @@ Status: FAIL
 
 ## MDR-004-pipeline-value.md
 
-Status: FAIL
-
-- Missing or incomplete: Definition
-- Missing or incomplete: Grain
-- Missing or incomplete: Approved Use
-- Missing or incomplete: Not Approved Use
-- Missing or incomplete: Review Cadence
+Status: PASS
 
 ## MDR-005-recognised-revenue.md
 

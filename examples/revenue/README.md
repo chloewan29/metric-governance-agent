@@ -28,3 +28,13 @@ metricgov check
 These records illustrate the workflow; they are not certifications for another organization. Owners, definitions, sources, uses, caveats, and review cadence must be confirmed locally.
 
 The command ends with `Governance check complete. Failures: 5`. This is expected: all five sample MDRs are intentionally draft and incomplete until their owners confirm the missing definitions, grains, usage boundaries, and review cadences. The example preserves those gaps instead of inventing business truth.
+
+## Structured decision example
+
+`feedback/workshop_decisions.yaml` contains one owner-confirmed decision for Pipeline Value. To populate its structured MDR and catalog fields, run:
+
+```bash
+metricgov finalize --from feedback/workshop_decisions.yaml
+```
+
+The structured decision makes Pipeline Value complete and reduces the governance report to `Failures: 4`. The other four revenue MDRs remain incomplete. YAML values only populate fields when `owner_confirmed: true` or when an individual value is explicitly marked `proposed: true`.

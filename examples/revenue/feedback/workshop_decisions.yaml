@@ -1,9 +1,3 @@
-# Decision Log: Revenue
-
-Generated Metric Decision Records from structured workshop decisions. Only explicitly proposed or owner-confirmed YAML values populate structured fields.
-
-## Workshop feedback used
-
 decisions:
   - metric: Pipeline Value
     status: Proposed
@@ -27,11 +21,3 @@ decisions:
       - Pipeline value is not realised revenue.
       - Values change as opportunity stages and probabilities change.
     review_cadence: Quarterly
-
-## Created MDRs
-
-- decisions\MDR-001-booked-revenue.md
-- decisions\MDR-002-gross-revenue.md
-- decisions\MDR-003-net-revenue.md
-- decisions\MDR-004-pipeline-value.md
-- decisions\MDR-005-recognised-revenue.md

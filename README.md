@@ -43,29 +43,30 @@ Proposed
 ## Owner
 Marketing
 
+## Owner Confirmed
+true
+
 ## Definition
-TBD — requires owner confirmation.
+Weighted value of open, qualified marketing-sourced opportunities.
 
 ## Source of Truth
 mart.marketing_sourced_pipeline
 
 ## Approved Use
-TBD — confirm where this metric is allowed to be used.
+Pipeline planning and forecast discussion
 
-## Workshop Feedback Snapshot
-Marketing agreed that Pipeline Revenue should be renamed Pipeline Value
-because it represents open and qualified opportunity value,
-not realised revenue.
+## Naming Decision
+Rename "Pipeline Revenue" to "Pipeline Value"
 ```
 
-The rename is recorded as workshop feedback, while the governed definition and usage boundaries remain visibly incomplete for human confirmation.
+The structured fields are populated because this example decision explicitly records `owner_confirmed: true`; its status remains Proposed.
 
 ### Business Metric Catalog (excerpt)
 
 | Metric | Status | Owner | Definition | Source of truth |
 |---|---|---|---|---|
 | Booked Revenue | Proposed | Sales Ops | TBD — requires owner confirmation. | `crm.opportunities` |
-| Pipeline Value | Proposed | Marketing | TBD — requires owner confirmation. | `mart.marketing_sourced_pipeline` |
+| Pipeline Value | Proposed | Marketing | Weighted value of open, qualified marketing-sourced opportunities. | `mart.marketing_sourced_pipeline` |
 | Recognised Revenue | Proposed | Finance | TBD — requires owner confirmation. | Recognised Revenue |
 
 The generated catalog is draft-first: it publishes proposed records and preserves missing confirmation instead of presenting them as certified definitions.
@@ -75,13 +76,13 @@ Run it from the example project directory:
 ```console
 $ cd examples/revenue
 $ metricgov prepare
-$ metricgov finalize --from feedback/workshop_notes.md
+$ metricgov finalize --from feedback/workshop_decisions.yaml
 $ metricgov check
 ```
 
-Governance check failures are expected in this example: the MDRs remain incomplete until owners confirm definitions, grains, usage boundaries, and review cadences. See the [complete worked example](examples/revenue/README.md).
+The check reports four expected failures: Pipeline Value is complete, while the other MDRs remain incomplete until owners confirm definitions, grains, usage boundaries, and review cadences. See the [complete worked example](examples/revenue/README.md).
 
-## What v0.1 supports
+## What v0.2 supports
 
 Built-in metric families: `revenue`, `churn`, and `active_customer`.
 
@@ -126,7 +127,8 @@ See [the revenue example](examples/revenue/README.md) for its artifacts and expe
 | `metricgov scan` | Scan files in `evidence/` and create an evidence log |
 | `metricgov classify` | Create the metric family map and ambiguity register |
 | `metricgov workshop` | Generate a stakeholder alignment workshop pack |
-| `metricgov record --from feedback/workshop_notes.md` | Draft MDRs from evidence and human feedback |
+| `metricgov record --from feedback/workshop_notes.md` | Preserve free-text notes in draft MDRs |
+| `metricgov record --from feedback/workshop_decisions.yaml` | Populate MDR fields from structured decisions |
 | `metricgov publish` | Generate CSV and Markdown catalogs from MDRs |
 | `metricgov check` | Write a governance completeness report |
 | `metricgov check --fail-on-error` | Also exit non-zero when definitions are incomplete |
@@ -153,6 +155,41 @@ metricgov finalize --from feedback/workshop_notes.md
 ```
 
 This produces draft MDRs under `decisions/`, catalogs under `catalog/`, and decision and completeness reports under `artifacts/`. Generated does not mean certified: review each MDR and only approve it after owner confirmation.
+
+### Free-text notes and structured decisions
+
+Markdown workshop notes remain supported and are preserved as a feedback snapshot. They do not populate governed fields automatically:
+
+```bash
+metricgov record --from feedback/workshop_notes.md
+```
+
+Use YAML when stakeholders have made explicit, structured decisions:
+
+```yaml
+decisions:
+  - metric: Pipeline Value
+    status: Proposed
+    owner: Marketing
+    owner_confirmed: true
+    source_of_truth: mart.marketing_sourced_pipeline
+    definition: Weighted value of open, qualified opportunities.
+    approved_use: Pipeline planning
+    not_approved_use: Financial reporting as actual revenue
+    naming_decision: Rename "Pipeline Revenue" to "Pipeline Value"
+    related_metrics: [Booked Revenue, Recognised Revenue]
+    caveats: [Pipeline value is not realised revenue.]
+```
+
+Run `metricgov record --from feedback/workshop_decisions.yaml`, or use the same path with `finalize`. Plain YAML field values are trusted only when `owner_confirmed: true`. For an unconfirmed decision, explicitly proposed fields use this form:
+
+```yaml
+definition:
+  value: Candidate definition for stakeholder review.
+  proposed: true
+```
+
+Certification is rejected unless the owner is confirmed and every required governance field is complete. Structured YAML also accepts `logic_formula`, `grain`, `time_basis`, and `review_cadence`, which are required for a complete definition. See the [revenue decision example](examples/revenue/feedback/workshop_decisions.yaml).
 
 ## Governance contract
 
