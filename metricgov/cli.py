@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import os
 import re
 import shutil
 import sys
@@ -896,33 +897,78 @@ def command_prepare(args: argparse.Namespace) -> None:
     command_scan(args)
     command_classify(args)
     command_workshop(args)
-    print("\nNext steps:")
-    print("- Review artifacts/03_ambiguity_register.md.")
-    print("- Use artifacts/04_workshop_pack.md with the relevant business owners.")
-    print("- Record owner-confirmed decisions in feedback/workshop_decisions.yaml.")
-    print("- Next command: metricgov finalize --from feedback/workshop_decisions.yaml")
+    if not getattr(args, "suppress_guidance", False):
+        print("\nNext steps:")
+        print("- Review artifacts/03_ambiguity_register.md.")
+        print("- Use artifacts/04_workshop_pack.md with the relevant business owners.")
+        print("- Record owner-confirmed decisions in feedback/workshop_decisions.yaml.")
+        print("- Next command: metricgov finalize --from feedback/workshop_decisions.yaml")
 
 
 def command_finalize(args: argparse.Namespace) -> None:
     command_record(args)
     command_publish(args)
+    outer_suppress = getattr(args, "suppress_guidance", False)
     args.suppress_guidance = True
     try:
         command_change_plan(args)
         command_check(args)
     finally:
-        args.suppress_guidance = False
-    print("\nNext steps:")
-    print("- Review artifacts/06_governance_check.md.")
-    print("- Review artifacts/07_dashboard_change_plan.md.")
-    print("- Share catalog/business_metric_dictionary.md with business users.")
-    print("- Metrics with governance failures are not certified.")
-    print("- If fields are missing, update feedback/workshop_decisions.yaml and rerun finalize.")
+        args.suppress_guidance = outer_suppress
+    if not outer_suppress:
+        print("\nNext steps:")
+        print("- Review artifacts/06_governance_check.md.")
+        print("- Review artifacts/07_dashboard_change_plan.md.")
+        print("- Share catalog/business_metric_dictionary.md with business users.")
+        print("- Metrics with governance failures are not certified.")
+        print("- If fields are missing, update feedback/workshop_decisions.yaml and rerun finalize.")
+
+
+def command_demo(args: argparse.Namespace) -> None:
+    if args.demo_name != "revenue":
+        raise SystemExit(f"Unknown demo: {args.demo_name}. Available demos: revenue.")
+    repo_root = Path.cwd()
+    example = repo_root / "examples" / "revenue"
+    if not example.is_dir():
+        raise SystemExit("Could not find examples/revenue. Run this command from the repository root.")
+
+    demo_args = argparse.Namespace(
+        from_file="feedback/workshop_decisions.yaml",
+        fail_on_error=False,
+        suppress_guidance=True,
+    )
+    os.chdir(example)
+    try:
+        command_prepare(demo_args)
+        command_finalize(demo_args)
+        command_change_plan(demo_args)
+        command_check(demo_args)
+    finally:
+        os.chdir(repo_root)
+
+    print("\nDemo complete")
+    print("Workflow steps ran: prepare, finalize, change-plan, check")
+    print("Key generated artifacts:")
+    print("- examples/revenue/artifacts/03_ambiguity_register.md")
+    print("- examples/revenue/artifacts/04_workshop_pack.md")
+    print("- examples/revenue/decisions/")
+    print("- examples/revenue/catalog/business_metric_dictionary.md")
+    print("- examples/revenue/artifacts/07_dashboard_change_plan.md")
+    print("- examples/revenue/artifacts/06_governance_check.md")
+    print("Governance check failures are expected because several demo MDRs are intentionally incomplete drafts.")
+    print("The one Ready to rename change is owner-confirmed, but a human must review it before changing reports or SQL.")
+    print("Next commands:")
+    print("  cd examples/revenue")
+    print("  metricgov check")
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="metricgov", description="Metric Governance Agent CLI")
     sub = parser.add_subparsers(dest="command", required=True)
+
+    p = sub.add_parser("demo", help="Run a worked example end to end")
+    p.add_argument("demo_name", help="Demo name (available: revenue)")
+    p.set_defaults(func=command_demo)
 
     p = sub.add_parser("init", help="Initialize a metric governance project")
     p.add_argument("metric_family", choices=[p.stem for p in PACKS_DIR.glob("*.json")])

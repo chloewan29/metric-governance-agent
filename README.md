@@ -44,13 +44,25 @@ cd metric-governance-agent
 python -m pip install -e .
 ```
 
+## Fastest way to see it work
+
+From the repository root, run the complete worked revenue demo with one command:
+
+```bash
+metricgov demo revenue
+```
+
+This regenerates the evidence review, workshop pack, MDRs, catalog, dashboard change plan, and governance report under `examples/revenue/`.
+
+Use the demo command to see the full workflow. Use `init`, `prepare`, `finalize`, and `check` when applying it to your own metric.
+
 ## How do I actually use this?
 
 There are two different paths: run the demo to inspect the outputs, or create a separate project for a metric your organization needs to govern.
 
 ### Path 1: Try the worked example
 
-Use this path only to see the generated artifacts quickly. From the repository root:
+The quickest option is `metricgov demo revenue`. To run the individual workflow commands manually instead, use:
 
 ```bash
 cd examples/revenue
@@ -217,6 +229,7 @@ Evidence formats:
 
 | Command | Purpose |
 |---|---|
+| `metricgov demo revenue` | Run the complete worked revenue example from the repository root. |
 | `metricgov init revenue` | Initialize a project from a built-in metric family. |
 | `metricgov scan` | Scan `evidence/` and create the evidence log. |
 | `metricgov classify` | Create the metric family map and ambiguity register. |

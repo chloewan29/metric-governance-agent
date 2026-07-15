@@ -66,7 +66,7 @@ class CliSmokeTest(unittest.TestCase):
     def test_help_lists_readme_commands(self) -> None:
         result = run_cli("--help", cwd=REPO_ROOT)
         self.assertEqual(result.returncode, 0, result.stderr)
-        commands = ("init", "scan", "classify", "workshop", "record", "publish", "change-plan", "check", "prepare", "finalize")
+        commands = ("demo", "init", "scan", "classify", "workshop", "record", "publish", "change-plan", "check", "prepare", "finalize")
         for command in commands:
             self.assertIn(command, result.stdout)
 
@@ -228,6 +228,42 @@ class CliSmokeTest(unittest.TestCase):
             self.assertIn("Naming decisions found: 0", plan)
             self.assertIn("No naming decisions found.", plan)
             self.assertIn("No action", plan)
+
+    def test_demo_revenue_succeeds_from_repo_root(self) -> None:
+        result = run_cli("demo", "revenue", cwd=REPO_ROOT)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("Demo complete", result.stdout)
+        self.assertIn("Workflow steps ran: prepare, finalize, change-plan, check", result.stdout)
+
+    def test_demo_unknown_name_has_helpful_error(self) -> None:
+        result = run_cli("demo", "churn", cwd=REPO_ROOT)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Unknown demo: churn. Available demos: revenue.", result.stderr)
+
+    def test_demo_outside_repo_root_has_helpful_error(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            result = run_cli("demo", "revenue", cwd=Path(directory))
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn(
+                "Could not find examples/revenue. Run this command from the repository root.",
+                result.stderr,
+            )
+
+    def test_demo_output_lists_artifacts_and_expected_failures(self) -> None:
+        result = run_cli("demo", "revenue", cwd=REPO_ROOT)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        expected_paths = (
+            "examples/revenue/artifacts/03_ambiguity_register.md",
+            "examples/revenue/artifacts/04_workshop_pack.md",
+            "examples/revenue/decisions/",
+            "examples/revenue/catalog/business_metric_dictionary.md",
+            "examples/revenue/artifacts/07_dashboard_change_plan.md",
+            "examples/revenue/artifacts/06_governance_check.md",
+        )
+        for path in expected_paths:
+            self.assertIn(path, result.stdout)
+        self.assertIn("Governance check failures are expected", result.stdout)
+        self.assertIn("one Ready to rename change is owner-confirmed", result.stdout)
 
 
 if __name__ == "__main__":
