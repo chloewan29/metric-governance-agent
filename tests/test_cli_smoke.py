@@ -25,7 +25,7 @@ def run_cli(*args: str, cwd: Path) -> subprocess.CompletedProcess[str]:
     )
 
 
-def prepare_booked_revenue_project(project: Path) -> None:
+def prepare_booked_revenue_project(project: Path) -> subprocess.CompletedProcess[str]:
     result = run_cli("init", "revenue", cwd=project)
     if result.returncode != 0:
         raise AssertionError(result.stderr)
@@ -36,6 +36,7 @@ def prepare_booked_revenue_project(project: Path) -> None:
     result = run_cli("prepare", cwd=project)
     if result.returncode != 0:
         raise AssertionError(result.stderr)
+    return result
 
 
 def complete_booked_revenue_yaml(*, owner_confirmed: bool = True, status: str = "Proposed") -> str:
@@ -77,10 +78,28 @@ class CliSmokeTest(unittest.TestCase):
             self.assertIn("To try the worked example: cd examples/revenue", result.stderr)
             self.assertIn("To start a new project: metricgov init revenue", result.stderr)
 
+    def test_init_prints_guidance_and_preserves_decision_template(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            project = Path(directory)
+            result = run_cli("init", "revenue", cwd=project)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("Add evidence to evidence/.", result.stdout)
+            self.assertIn("Next command: metricgov prepare", result.stdout)
+            decisions = project / "feedback" / "workshop_decisions.yaml"
+            self.assertTrue(decisions.is_file())
+            self.assertIn("# decisions:", decisions.read_text(encoding="utf-8"))
+            decisions.write_text("# keep this file\n", encoding="utf-8")
+            result = run_cli("init", "revenue", cwd=project)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(decisions.read_text(encoding="utf-8"), "# keep this file\n")
+
     def test_revenue_prepare_smoke(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             project = Path(directory)
-            prepare_booked_revenue_project(project)
+            result = prepare_booked_revenue_project(project)
+            self.assertIn("Review artifacts/03_ambiguity_register.md.", result.stdout)
+            self.assertIn("Use artifacts/04_workshop_pack.md", result.stdout)
+            self.assertIn("Next command: metricgov finalize --from feedback/workshop_decisions.yaml", result.stdout)
             outputs = (
                 "artifacts/01_evidence_log.csv",
                 "artifacts/02_metric_family_map.md",
@@ -204,6 +223,7 @@ class CliSmokeTest(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             result = run_cli("change-plan", cwd=project)
             self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("No naming decisions were found", result.stdout)
             plan = (project / "artifacts" / "07_dashboard_change_plan.md").read_text(encoding="utf-8")
             self.assertIn("Naming decisions found: 0", plan)
             self.assertIn("No naming decisions found.", plan)

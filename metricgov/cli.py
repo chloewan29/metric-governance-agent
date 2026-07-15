@@ -314,7 +314,26 @@ def command_init(args: argparse.Namespace) -> None:
         "# Workshop notes\n\nAfter stakeholder alignment, record confirmed decisions here.\n",
         encoding="utf-8",
     )
+    decisions_path = root / "feedback" / "workshop_decisions.yaml"
+    if not decisions_path.exists():
+        decisions_path.write_text(
+            "# Add owner-confirmed decisions after the stakeholder workshop.\n"
+            "# decisions:\n"
+            "#   - metric: Example Metric\n"
+            "#     status: Proposed\n"
+            "#     owner: Example Team\n"
+            "#     owner_confirmed: true\n"
+            "#     definition: Owner-confirmed business definition\n"
+            "#     source_of_truth: schema.table\n"
+            "#     approved_use: Approved decision or report\n"
+            "#     not_approved_use: Prohibited decision or report\n",
+            encoding="utf-8",
+        )
     print(f"Initialized metric governance project for '{args.metric_family}'.")
+    print("\nNext steps:")
+    print("- Add evidence to evidence/.")
+    print("- Useful evidence includes SQL, CSV or Excel exports, dashboard labels, and notes.")
+    print("- Next command: metricgov prepare")
 
 
 def command_scan(args: argparse.Namespace) -> None:
@@ -820,6 +839,16 @@ def command_change_plan(args: argparse.Namespace) -> None:
         f.write("- Matches use labels and captured evidence text; indirect or dynamic references may be missed.\n")
         f.write("- Unclear naming decisions or unmatched evidence remain Review required.\n")
     print(f"Generated dashboard change plan: {out.relative_to(root)}. Ready: {ready}. Review required: {review}.")
+    if not getattr(args, "suppress_guidance", False):
+        print("\nNext steps:")
+        print("- Review artifacts/07_dashboard_change_plan.md.")
+        if ready:
+            print("- Review the affected reports, SQL, and dashboard labels before renaming them.")
+        if review:
+            print("- Confirm ambiguous naming decisions with the relevant metric owners.")
+        if naming_count == 0:
+            print("- No naming decisions were found. No label changes are currently planned.")
+        print("- Optional agent guide in the project repo: skills/dashboard-change-plan-reviewer.skill.md")
 
 
 def command_check(args: argparse.Namespace) -> None:
@@ -852,19 +881,43 @@ def command_check(args: argparse.Namespace) -> None:
     print(f"Governance check complete. Failures: {failures}. Report: {report.relative_to(root)}")
     if args.fail_on_error and failures:
         raise SystemExit(1)
+    if not getattr(args, "suppress_guidance", False):
+        print("\nNext steps:")
+        print("- Review artifacts/06_governance_check.md.")
+        if failures:
+            print("- Failures indicate missing owner-confirmed governance fields.")
+            print("- Update feedback/workshop_decisions.yaml or the MDRs, then rerun finalize or check.")
+        else:
+            print("- The catalog is governance-complete according to the current rules.")
+        print("- Optional agent guide in the project repo: skills/governance-check-reviewer.skill.md")
 
 
 def command_prepare(args: argparse.Namespace) -> None:
     command_scan(args)
     command_classify(args)
     command_workshop(args)
+    print("\nNext steps:")
+    print("- Review artifacts/03_ambiguity_register.md.")
+    print("- Use artifacts/04_workshop_pack.md with the relevant business owners.")
+    print("- Record owner-confirmed decisions in feedback/workshop_decisions.yaml.")
+    print("- Next command: metricgov finalize --from feedback/workshop_decisions.yaml")
 
 
 def command_finalize(args: argparse.Namespace) -> None:
     command_record(args)
     command_publish(args)
-    command_change_plan(args)
-    command_check(args)
+    args.suppress_guidance = True
+    try:
+        command_change_plan(args)
+        command_check(args)
+    finally:
+        args.suppress_guidance = False
+    print("\nNext steps:")
+    print("- Review artifacts/06_governance_check.md.")
+    print("- Review artifacts/07_dashboard_change_plan.md.")
+    print("- Share catalog/business_metric_dictionary.md with business users.")
+    print("- Metrics with governance failures are not certified.")
+    print("- If fields are missing, update feedback/workshop_decisions.yaml and rerun finalize.")
 
 
 def build_parser() -> argparse.ArgumentParser:

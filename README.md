@@ -1,209 +1,155 @@
 # Metric Governance Agent
 
-**A Git-native workflow for turning conflicting metric evidence into reviewable, governed definitions.**
+**Stop arguing about which business metric is right.**
 
-Metric Governance Agent helps analytics and data teams move from “this dashboard says revenue” to an auditable definition with an owner, source of truth, usage boundaries, and decision history.
+Metric Governance Agent helps analysts turn messy metric evidence—SQL, notes, exports, and report labels—into structured metric decisions, catalog entries, and dashboard change plans.
 
-It scans lightweight evidence, exposes ambiguity, prepares stakeholder alignment materials, records Metric Decision Records (MDRs), publishes a catalog, identifies affected dashboard and SQL labels, and checks governance completeness. It does not decide business truth: only a confirmed metric owner can approve a definition.
+## The problem
+
+One company can use “revenue” to mean several different things:
+
+| Team / source | Label used | What it might mean |
+|---|---|---|
+| Finance export | Revenue | Recognised revenue |
+| Sales SQL | Revenue | Closed-won bookings |
+| Marketing report | Pipeline Revenue | Future opportunity value |
+| Board pack | Revenue | Undefined executive metric |
+| Excel export | Net Revenue | Revenue after deductions |
+
+The issue is not that every version is wrong. The issue is that the labels, owners, approved uses, and definitions are not aligned.
+
+Metric Governance Agent finds those gaps and prepares them for people to resolve. It does not automatically certify business truth.
 
 ## What it produces
 
-Metric Governance Agent turns messy metric evidence into a governed decision trail:
+| Output | Purpose |
+|---|---|
+| Ambiguity Register | Shows where metric labels, sources, owners, or meanings do not align. |
+| Workshop Pack | Gives analysts stakeholder questions and decision points. |
+| Metric Decision Records | Capture owner-confirmed definitions, naming decisions, caveats, and usage boundaries. |
+| Business Metric Catalog | Publishes cleaner metric definitions from structured decisions. |
+| Dashboard Change Plan | Identifies where old report labels should be renamed or reviewed. |
 
-```text
-messy evidence → ambiguity register → owner-confirmed decisions
-               → MDRs → business metric catalog → dashboard change plan
+A **Metric Decision Record (MDR)** is an auditable record of what a metric means, who owns it, where it comes from, and where it should—or should not—be used.
+
+The agent exposes ambiguity, prepares decisions, records owner-confirmed inputs, and generates governance artifacts. Only a confirmed metric owner can approve a definition.
+
+## Install
+
+Requires Python 3.10 or later.
+
+```bash
+git clone https://github.com/chloewan29/metric-governance-agent.git
+cd metric-governance-agent
+python -m pip install -e .
 ```
 
-| Stage | Artifact | Purpose |
-|---|---|---|
-| Discover ambiguity | Ambiguity Register | Shows where labels, sources, owners, or meanings do not align. |
-| Prepare alignment | Workshop Pack | Gives analysts stakeholder questions and decision points. |
-| Record decisions | Metric Decision Records | Captures confirmed definitions, naming decisions, caveats, and usage boundaries. |
-| Publish definitions | Business Metric Catalog | Creates a cleaner metric dictionary from structured decisions. |
-| Drive execution | Dashboard Change Plan | Identifies where old labels should be renamed or reviewed. |
+## How do I actually use this?
 
-From the worked revenue example:
+There are two different paths: run the demo to inspect the outputs, or create a separate project for a metric your organization needs to govern.
+
+### Path 1: Try the worked example
+
+Use this path only to see the generated artifacts quickly. From the repository root:
+
+```bash
+cd examples/revenue
+metricgov prepare
+metricgov finalize --from feedback/workshop_decisions.yaml
+metricgov check
+```
+
+If you only want to see what the tool creates, browse [`examples/revenue`](examples/revenue/README.md):
 
 - [Ambiguity Register](examples/revenue/artifacts/03_ambiguity_register.md)
 - [Pipeline Value MDR](examples/revenue/decisions/MDR-004-pipeline-value.md)
 - [Business Metric Dictionary](examples/revenue/catalog/business_metric_dictionary.md)
 - [Dashboard Change Plan](examples/revenue/artifacts/07_dashboard_change_plan.md)
 
-The agent does not automatically certify business truth. It exposes ambiguity, prepares decisions, and only fills governed catalog fields when owners confirm them.
+The example has one complete, owner-confirmed Pipeline Value decision. Its other four MDRs intentionally remain incomplete, so `Governance check complete. Failures: 4` is expected.
 
-## Why this exists
+### Path 2: Use it on your own metric
 
-The same label—revenue, churn, active customer—often hides different formulas, grains, time bases, and intended uses. This project turns those disagreements into explicit, reviewable decisions without letting software invent business truth.
+1. Create and enter a new project directory, then initialize a supported metric family:
 
-Use it when you want a lightweight, repository-based process before adopting—or alongside—a semantic layer or enterprise catalog. It is not a dashboard, a general-purpose data catalog, or an automatic certification engine.
+   ```bash
+   mkdir my-metric-governance
+   cd my-metric-governance
+
+   metricgov init revenue
+   # Or: metricgov init churn
+   # Or: metricgov init active_customer
+   ```
+
+2. Add messy evidence files to `evidence/`. Useful inputs include:
+
+   - a SQL query
+   - a CSV or Excel export
+   - a dashboard label list
+   - meeting notes
+   - Markdown notes
+
+3. Scan and classify the evidence, then generate the workshop material:
+
+   ```bash
+   metricgov prepare
+   ```
+
+4. Review the discovery outputs:
+
+   - `artifacts/03_ambiguity_register.md`
+   - `artifacts/04_workshop_pack.md`
+
+5. Meet with the relevant business owners—such as Finance, Sales, Product, Marketing, or Customer Success—to resolve definitions, ownership, naming, and approved uses.
+
+6. Record the owner-confirmed outcomes in `feedback/workshop_decisions.yaml`.
+
+7. Generate the MDRs, catalog, change plan, and governance report:
+
+   ```bash
+   metricgov finalize --from feedback/workshop_decisions.yaml
+   metricgov check
+   ```
+
+8. Review the final outputs:
+
+   - `decisions/*.md`
+   - `catalog/business_metric_dictionary.md`
+   - `artifacts/07_dashboard_change_plan.md`
+   - `artifacts/06_governance_check.md`
+
+The agent does not replace the business meeting. It prepares the evidence, structures decisions, and records confirmed outcomes.
+
+## How it works
 
 ```text
-evidence → family map → ambiguity register → workshop pack
-         → human decisions → MDRs → metric catalog
-         → dashboard change plan → governance check
+messy evidence
+→ ambiguity register
+→ stakeholder workshop
+→ owner-confirmed decisions
+→ Metric Decision Records
+→ business metric catalog
+→ dashboard change plan
+→ governance check
 ```
 
-## Sample output
+The catalog defines governed metrics. The Dashboard Change Plan identifies evidence, SQL, and report labels that should be renamed or reviewed; it never modifies those assets automatically.
 
-The worked revenue example produces draft governance artifacts from supplied evidence and workshop notes. The excerpts below reflect the generated files; unresolved fields remain `TBD` until owners confirm them.
+## Using with coding agents
 
-### Ambiguity Register (excerpt)
+The CLI generates the evidence, decision, catalog, and change-plan artifacts. The guides in [`skills/`](skills/README.md) help Codex, Claude Code, and other coding agents review, refine, or extend those artifacts consistently.
 
-| Type | Evidence | Risk / next step |
-|---|---|---|
-| `generic_label_without_certification` | Generic label 'Revenue' appears in 4 evidence rows. | The same label may hide multiple business meanings. Ask owners whether it should be split. |
-| `same_label_multiple_sources` | 'Revenue' appears in `board_pack.md`, `finance_export.csv`, `marketing_pipeline.sql`, and `sales_dashboard.sql`. | Confirm source of truth, owner, and approved use. |
-| `metric_family_has_multiple_variants` | Detected `booked_revenue`, `gross_revenue`, `net_revenue`, `pipeline_value`, and `recognised_revenue`. | Create distinct MDRs for legitimate variants. |
-| `owner_gap` | Recognised revenue in `finance_export.csv` has no owner mentioned. | Identify the business owner before certification. |
+Run the CLI first, then ask the agent to apply a specific skill—for example, use [`dashboard-change-plan-reviewer.skill.md`](skills/dashboard-change-plan-reviewer.skill.md) to review rename readiness. Humans still confirm business truth and approve governed definitions.
 
-The register identifies ambiguity and questions; it does not decide which definition is true.
+## Free-text notes or structured decisions
 
-### Metric Decision Record (excerpt)
-
-```markdown
-# MDR: Pipeline Value
-
-## Status
-Proposed
-
-## Owner
-Marketing
-
-## Owner Confirmed
-true
-
-## Definition
-Weighted value of open, qualified marketing-sourced opportunities.
-
-## Source of Truth
-mart.marketing_sourced_pipeline
-
-## Approved Use
-Pipeline planning and forecast discussion
-
-## Naming Decision
-Rename "Pipeline Revenue" to "Pipeline Value"
-```
-
-The structured fields are populated because this example decision explicitly records `owner_confirmed: true`; its status remains Proposed.
-
-### Business Metric Catalog (excerpt)
-
-| Metric | Status | Owner | Definition | Source of truth |
-|---|---|---|---|---|
-| Booked Revenue | Proposed | Sales Ops | TBD — requires owner confirmation. | `crm.opportunities` |
-| Pipeline Value | Proposed | Marketing | Weighted value of open, qualified marketing-sourced opportunities. | `mart.marketing_sourced_pipeline` |
-| Recognised Revenue | Proposed | Finance | TBD — requires owner confirmation. | Recognised Revenue |
-
-The generated catalog is draft-first: it publishes proposed records and preserves missing confirmation instead of presenting them as certified definitions.
-
-### Dashboard Change Plan (excerpt)
-
-| Current Label | Recommended Label | Affected Evidence | Owner | Status |
-|---|---|---|---|---|
-| Pipeline Revenue | Pipeline Value | `marketing_pipeline.sql` | Marketing | Ready to rename |
-
-The catalog defines the governed metric; the change plan identifies evidence, reports, dashboard labels, or SQL that should be renamed or reviewed. It never modifies those assets automatically.
-
-Run it from the example project directory:
-
-```console
-$ cd examples/revenue
-$ metricgov prepare
-$ metricgov finalize --from feedback/workshop_decisions.yaml
-$ metricgov change-plan
-$ metricgov check
-```
-
-The check reports four expected failures: Pipeline Value is complete, while the other MDRs remain incomplete until owners confirm definitions, grains, usage boundaries, and review cadences. See the [complete worked example](examples/revenue/README.md).
-
-## What v0.3 supports
-
-Built-in metric families: `revenue`, `churn`, and `active_customer`.
-
-Evidence formats: SQL, CSV, Markdown, text, and Excel (`.xlsx`/`.xlsm`) when the optional `openpyxl` dependency is installed.
-
-v0.3 adds the Dashboard Change Plan: an actionable Markdown report that maps confirmed naming decisions to affected evidence. It is a review aid, not an automatic dashboard or SQL migration tool.
-
-## Quick start
-
-Requires Python 3.10 or later.
-
-```bash
-git clone <your-repo-url>
-cd metric-governance-agent
-python -m pip install -e .
-```
-
-`prepare` and `finalize` must be run inside a metric project directory—the directory containing `metric_context.json`. They are not repository-root commands.
-
-The included worked example is in `examples/revenue`. From the repository root, try it with:
-
-```bash
-cd examples/revenue
-metricgov prepare
-metricgov finalize --from feedback/workshop_notes.md
-```
-
-Alternatively, create and enter a new directory, then initialize a revenue project:
-
-```bash
-mkdir my-revenue-governance
-cd my-revenue-governance
-metricgov init revenue
-metricgov prepare
-```
-
-See [the revenue example](examples/revenue/README.md) for its artifacts and expected governance status.
-
-## CLI reference
-
-| Command | Purpose |
-|---|---|
-| `metricgov init revenue` | Initialize a project from a built-in metric family |
-| `metricgov scan` | Scan files in `evidence/` and create an evidence log |
-| `metricgov classify` | Create the metric family map and ambiguity register |
-| `metricgov workshop` | Generate a stakeholder alignment workshop pack |
-| `metricgov record --from feedback/workshop_notes.md` | Preserve free-text notes in draft MDRs |
-| `metricgov record --from feedback/workshop_decisions.yaml` | Populate MDR fields from structured decisions |
-| `metricgov publish` | Generate CSV and Markdown catalogs from MDRs |
-| `metricgov change-plan` | Map naming decisions to affected evidence and labels |
-| `metricgov check` | Write a governance completeness report |
-| `metricgov check --fail-on-error` | Also exit non-zero when definitions are incomplete |
-| `metricgov prepare` | Run `scan → classify → workshop` |
-| `metricgov finalize --from feedback/workshop_notes.md` | Run `record → publish → change-plan → check` |
-
-Run workflow commands from the metric project directory (the directory containing `metric_context.json`). The equivalent module form is `python -m metricgov.cli`.
-
-## Governance workflow
-
-Initialize a project, add SQL, notes, or sample exports under `evidence/`, and prepare the alignment artifacts:
-
-```bash
-mkdir my-churn-governance
-cd my-churn-governance
-metricgov init churn
-metricgov prepare
-```
-
-This creates the evidence log, metric family map, ambiguity register, and workshop pack under `artifacts/`. Review them with the relevant owners and preserve decisions and unresolved questions in `feedback/workshop_notes.md`, then run:
-
-```bash
-metricgov finalize --from feedback/workshop_notes.md
-```
-
-This produces draft MDRs under `decisions/`, catalogs under `catalog/`, and decision, dashboard-change, and completeness reports under `artifacts/`. Generated does not mean certified: review each MDR and only approve it after owner confirmation.
-
-### Free-text notes and structured decisions
-
-Markdown workshop notes remain supported and are preserved as a feedback snapshot. They do not populate governed fields automatically:
+Use Markdown for unstructured workshop notes. The text is preserved in draft MDRs but does not automatically populate governed fields:
 
 ```bash
 metricgov record --from feedback/workshop_notes.md
 ```
 
-Use YAML when stakeholders have made explicit, structured decisions:
+Use YAML when stakeholders have made explicit decisions:
 
 ```yaml
 decisions:
@@ -220,7 +166,7 @@ decisions:
     caveats: [Pipeline value is not realised revenue.]
 ```
 
-Run `metricgov record --from feedback/workshop_decisions.yaml`, or use the same path with `finalize`. Plain YAML field values are trusted only when `owner_confirmed: true`. For an unconfirmed decision, explicitly proposed fields use this form:
+Plain YAML values populate MDR fields only when `owner_confirmed: true`. An unconfirmed value must be explicitly proposed:
 
 ```yaml
 definition:
@@ -228,24 +174,78 @@ definition:
   proposed: true
 ```
 
-Certification is rejected unless the owner is confirmed and every required governance field is complete. Structured YAML also accepts `logic_formula`, `grain`, `time_basis`, and `review_cadence`, which are required for a complete definition. See the [revenue decision example](examples/revenue/feedback/workshop_decisions.yaml).
+Certification is rejected unless the owner is confirmed and all required governance fields are complete. See the [structured revenue decision](examples/revenue/feedback/workshop_decisions.yaml).
 
-## Governance contract
+## What this is—and is not
 
-Every certified definition must include an owner, definition, source of truth, formula, grain, time basis, approved and prohibited uses, caveats, related metrics, and review cadence. Similar names are never sufficient evidence that variants should be merged. Incomplete evidence and open questions remain explicit.
+This is a lightweight, Git-friendly workflow for analysts, BI managers, and analytics leads. It creates reviewable Markdown and CSV artifacts that teams can diff, discuss, and approve.
 
-`metricgov check --fail-on-error` enforces field completeness and is suitable for CI when the checked project is expected to be complete. This repository's CI runs `metricgov check` without that flag because the worked example intentionally preserves unconfirmed fields. Neither form verifies that an owner truly approved a record; that remains a human review responsibility.
+It is not:
 
-## Repository layout
+- an automatic source of business truth
+- a dashboard or enterprise data catalog
+- a replacement for Finance or metric-owner approval
+- an automatic SQL, dashboard, Power BI, Salesforce, or Tableau migration tool
+- a reason to upload sensitive row-level customer data
+
+Prefer metadata, SQL, sample headers, and notes over raw sensitive data.
+
+## Supported metric packs and evidence
+
+Built-in metric families:
+
+- `revenue`
+- `churn`
+- `active_customer`
+
+Evidence formats:
+
+- SQL, CSV, Markdown, and text
+- Excel (`.xlsx` and `.xlsm`) with the optional `openpyxl` dependency
+
+## Governance rules
+
+- Never certify a metric without owner confirmation.
+- Never merge variants only because their names are similar.
+- Keep metric families separate from certified definitions.
+- Preserve incomplete evidence and open questions.
+- Every certified definition needs an owner, definition, source of truth, formula, grain, time basis, approved and prohibited uses, caveats, related metrics, and review cadence.
+
+`metricgov check --fail-on-error` returns a non-zero exit code when required fields are incomplete. It checks completeness; it cannot prove that a human owner genuinely approved a record.
+
+## CLI reference
+
+| Command | Purpose |
+|---|---|
+| `metricgov init revenue` | Initialize a project from a built-in metric family. |
+| `metricgov scan` | Scan `evidence/` and create the evidence log. |
+| `metricgov classify` | Create the metric family map and ambiguity register. |
+| `metricgov workshop` | Generate a stakeholder workshop pack. |
+| `metricgov record --from feedback/workshop_notes.md` | Preserve free-text notes in draft MDRs. |
+| `metricgov record --from feedback/workshop_decisions.yaml` | Populate MDR fields from structured decisions. |
+| `metricgov publish` | Generate CSV and Markdown catalogs from MDRs. |
+| `metricgov change-plan` | Map naming decisions to affected evidence and labels. |
+| `metricgov check` | Write a governance completeness report. |
+| `metricgov check --fail-on-error` | Also fail the command when definitions are incomplete. |
+| `metricgov prepare` | Run `scan → classify → workshop`. |
+| `metricgov finalize --from <file>` | Run `record → publish → change-plan → check`. |
+
+The equivalent module form is `python -m metricgov.cli`.
+
+## Project structure
 
 ```text
 metricgov/             Python CLI
 metric_packs/          Built-in discovery vocabulary
-skills/                Seven-step agent workflow instructions
+skills/                Seven-step governance workflow
 templates/             MDR and catalog templates
-examples/revenue/      Worked example
-tests/                 CLI smoke tests
+examples/revenue/      Worked revenue example
+tests/                 CLI tests
 .github/workflows/     CI configuration
 ```
 
-See [ROADMAP.md](ROADMAP.md) for planned work. Licensed under the [MIT License](LICENSE).
+## Roadmap and limitations
+
+See [ROADMAP.md](ROADMAP.md) for planned work. Current matching and naming-decision parsing are intentionally simple and conservative: unclear or unmatched changes are marked for review instead of guessed.
+
+Licensed under the [MIT License](LICENSE).

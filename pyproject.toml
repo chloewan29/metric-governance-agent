@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "metric-governance-agent"
-version = "0.3.0"
+version = "0.4.0"
 description = "Repo-based metric governance workflow for scanning evidence, classifying ambiguity, recording Metric Decision Records, and publishing business metric catalogs."
 authors = [{ name = "Chloe Wan" }]
 readme = "README.md"
